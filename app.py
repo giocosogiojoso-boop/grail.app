@@ -7,7 +7,7 @@ st.title("FX AI 接続テスト")
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     # モデル名を 'gemini-1.5-flash' に固定
-    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    model = genai.GenerativeModel('gemini-1.5-flash')
 else:
     st.error("Secretsにキーが見つかりません")
 
