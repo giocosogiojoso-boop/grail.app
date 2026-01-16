@@ -13,7 +13,8 @@ try:
     GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
     NEWS_API_KEY = st.secrets["NEWS_API_KEY"]
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+
 except:
     st.error("SecretsにAPIキーが設定されていません。")
 
