@@ -4,15 +4,21 @@ import requests
 import feedparser
 import urllib.parse
 import datetime
-import yfinance as ticker_data  # レート取得用
+import pytz  # タイムゾーン変換用
+import yfinance as ticker_data
 
 # --- アプリ基本設定 ---
 st.set_page_config(page_title="FX AI-Analyst 2026", page_icon="📈", layout="centered")
 
+# --- 日本時間の取得関数 ---
+def get_jst_now():
+    # サーバー時刻を日本時間(JST)に変換
+    jst = pytz.timezone('Asia/Tokyo')
+    return datetime.datetime.now(jst)
+
 # --- 最新レート取得関数 ---
 def get_current_usd_jpy():
     try:
-        # yfinanceを使ってドル円(JPY=X)の最新データを取得
         data = ticker_data.Ticker("JPY=X")
         price = data.history(period="1d")['Close'].iloc[-1]
         return round(price, 3)
@@ -36,13 +42,14 @@ def get_ai_model():
 @st.cache_data(ttl=300)
 def get_latest_forex_news():
     news_list = []
+    # 検索クエリ：24時間以内に限定
     search_query = 'USD JPY "forex" OR "円安" OR "円高" when:1d'
     encoded_query = urllib.parse.quote(search_query)
     rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=ja&gl=JP&ceid=JP:ja"
     try:
         feed = feedparser.parse(rss_url)
         for entry in feed.entries[:10]:
-            news_list.append(f"【{entry.get('published', '')}】 {entry.title}")
+            news_list.append(f"・{entry.title}")
     except:
         pass
     return news_list
@@ -50,14 +57,13 @@ def get_latest_forex_news():
 # --- UI構築 ---
 st.title("📈 ドル円 AI実戦司令塔")
 
-# --- ステータスパネル (日時 & レート) ---
-now = datetime.datetime.now()
+# --- ステータスパネル (日本時間 & レート) ---
+jst_now = get_jst_now()
 current_rate = get_current_usd_jpy()
 
-# 2カラムで日時とレートを綺麗に表示
 col1, col2 = st.columns(2)
 with col1:
-    st.metric("現在時刻", now.strftime('%Y/%m/%d %H:%M'))
+    st.metric("現在時刻 (日本)", jst_now.strftime('%Y/%m/%d %H:%M'))
 with col2:
     if current_rate:
         st.metric("USD / JPY", f"{current_rate} 円")
@@ -68,13 +74,14 @@ st.divider()
 
 # メイン解析ボタン
 if st.button("最新相場を1クリック解析", use_container_width=True, type="primary"):
-    with st.spinner("2026年最新情報をスキャン中..."):
+    with st.spinner("日本時間の最新ニュースを分析中..."):
         model, model_name = get_ai_model()
         news_data = get_latest_forex_news()
         
         if model and news_data:
             prompt = f"""
-            現在は2026年1月、ドル円レートは {current_rate} 円付近です。
+            現在は2026年1月、日本時刻は {jst_now.strftime('%Y-%m-%d %H:%M')} です。
+            現在のドル円レートは {current_rate} 円付近です。
             高市政権下の最新ニュースに基づき、プロトレーダーとして分析してください。
             1. 古い情報は無視。
             2. 高市氏は現職の総理。
@@ -88,7 +95,7 @@ if st.button("最新相場を1クリック解析", use_container_width=True, typ
                 st.success(f"解析完了 (AI: {model_name})")
                 st.markdown("---")
                 st.markdown(response.text)
-                with st.expander("情報ソースを確認"):
+                with st.expander("取得したニュースソースを確認"):
                     for n in news_data: st.write(n)
             except Exception as e:
                 st.error(f"解析エラー: {e}")
