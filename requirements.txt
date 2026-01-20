@@ -1,5 +1,9 @@
-streamlit
 google-generativeai
-requests
+streamlit
+python-dotenv
+pytz
 feedparser
+beautifulsoup4
 yfinance
+pandas
+plotly
