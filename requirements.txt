@@ -1,5 +1,5 @@
-st-gsheets-connection
 google-generativeai
 yfinance
 feedparser
 plotly
+pandas
