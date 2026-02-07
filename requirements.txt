@@ -1,9 +1,2 @@
-google-generativeai
-streamlit
-python-dotenv
-pytz
-feedparser
-beautifulsoup4
+st-gsheets-connection
 yfinance
-pandas
-plotly
