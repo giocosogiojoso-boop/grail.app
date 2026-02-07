@@ -54,7 +54,7 @@ def auto_check_predictions(current_price):
     
     for entry in st.session_state.history:
         # 【テスト用】判定時間を60秒に設定。確認できたら 86400 に変更してください。
-        check_seconds = 60 
+        check_seconds =86400 
         
         if entry['status'] == 'Pending' and (now - entry['time']).total_seconds() >= check_seconds:
             is_win = False
