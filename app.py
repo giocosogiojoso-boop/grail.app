@@ -1,4 +1,20 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
+import pandas as pd
+
+# 接続作成
+conn = st.connection("gsheets", type=GSheetsConnection)
+
+# --- 判定結果をスプレッドシートに追記する関数 ---
+def add_to_sheet(entry):
+    # 現在のデータを取得
+    df = conn.read(worksheet="Sheet1")
+    # 新しい行を追加
+    new_df = pd.concat([df, pd.DataFrame([entry])], ignore_index=True)
+    # スプレッドシートを更新
+    conn.update(worksheet="Sheet1", data=new_df)
+    st.toast("スプレッドシートに保存しました！")
+import streamlit as st
 import google.generativeai as genai
 import feedparser
 import urllib.parse
