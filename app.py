@@ -75,7 +75,7 @@ with col_l:
                 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
                 
                 # 【重要】404エラー対策：モデル名を最新の指定形式に
-                # gemini-1.5-flash または gemini-2.0-flash-exp を試用
+                # gemini-2.0-flash を試用
                 model = genai.GenerativeModel('gemini-1.5-flash')
                 
                 prompt = f"""
