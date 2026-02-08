@@ -57,7 +57,7 @@ if st.button("🚀 AI予測を実行する", use_container_width=True, type="pri
                 success = False
                 for m_name in ['gemini-1.5-flash', 'gemini-1.5-pro']:
                     try:
-                        model = genai.GenerativeModel(m_name)
+                        model = genai.GenerativeModel('gemini-1.5-flash-8b') # 最も軽量で制限が緩いモデル
                         response = model.generate_content(f"ドル円{current_rate}円。24時間後を[BUY/SELL/HOLD]で判定し、日本語で理由を述べて。")
                         res_text = response.text
                         success = True
