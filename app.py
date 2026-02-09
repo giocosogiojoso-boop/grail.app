@@ -9,15 +9,15 @@ import plotly.graph_objects as go
 import pandas as pd
 
 # 1. ページ設定
-st.set_page_config(page_title="FX AI-Analyst Stable", layout="wide")
+st.set_page_config(page_title="FX AI-Analyst 2026", layout="wide")
 JST = pytz.timezone('Asia/Tokyo')
 
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# 2. データ取得関数（バグ回避のため get_data に統一）
+# 2. データ取得（関数名を統一してエラーを防止）
 @st.cache_data(ttl=600)
-def get_data():
+def get_market_data():
     rate, df, news = 150.0, pd.DataFrame(), []
     try:
         fx = ticker_data.Ticker("JPY=X")
@@ -31,10 +31,10 @@ def get_data():
     except: news = ["ニュース取得制限中"]
     return df, rate, news
 
-df_history, current_rate, news_list = get_data()
+df_history, current_rate, news_list = get_market_data()
 
 # 3. UI表示
-st.title("💹 FX AI-Analyst (Global Stable)")
+st.title("💹 FX AI-Analyst (Stable 2.0)")
 st.metric("USD/JPY", f"{current_rate}円")
 
 if not df_history.empty:
@@ -44,33 +44,40 @@ if not df_history.empty:
 
 st.divider()
 
-# 4. 予測実行（Proモデルへの変更と詳細エラー表示）
+# 4. 予測実行（最新の2.0-flashモデルをフルネームで指定）
 if st.button("🚀 AI予測を実行する", use_container_width=True, type="primary"):
     with st.spinner("AIと通信中..."):
         try:
             api_key = st.secrets["GEMINI_API_KEY"]
             genai.configure(api_key=api_key)
             
-            # 【重要】地域制限をパスしやすいと言われる 'gemini-1.5-pro' に変更
-            model = genai.GenerativeModel('gemini-1.5-pro')
+            # 404エラーと地域制限を同時に回避するため、最新の2.0モデルをフルネームで指定
+            model = genai.GenerativeModel('models/gemini-2.0-flash')
             
             prompt = f"現在のドル円は{current_rate}円です。24時間後の予測を[BUY/SELL/HOLD]で判定し、日本語で理由を述べてください。"
             response = model.generate_content(prompt)
             
             if response.text:
                 res_text = response.text
-                judgment = "BUY" if "[BUY]" in res_text.upper() else "SELL" if "[SELL]" in res_text.upper() else "HOLD"
+                judgment = "HOLD"
+                if "[BUY]" in res_text.upper(): judgment = "BUY"
+                elif "[SELL]" in res_text.upper(): judgment = "SELL"
+                
                 st.session_state.history.append({"time": datetime.datetime.now(JST), "rate": current_rate, "pred": judgment})
                 st.subheader(f"🔮 AI判定: {judgment}")
                 st.markdown(res_text)
                 
         except Exception as e:
             st.error("🚨 通信エラーが発生しました")
-            if "location" in str(e).lower():
-                st.warning("Googleの地域制限により、現在このAIモデルは利用できません。")
-                st.info("解決策: 1時間ほど待つか、Streamlit Cloudの画面右下から 'Reboot App' を試すと、接続先が変わって直ることがあります。")
+            # 具体的なエラー原因を診断
+            err_str = str(e)
+            if "location" in err_str.lower():
+                st.warning("Googleの地域制限により、このサーバーからはAIに接続できません。")
+                st.info("【解決策】Streamlit Cloudのメニューから 'Reboot App' を数回実行して、接続サーバーを変えてみてください。")
+            elif "404" in err_str:
+                st.warning("モデル名が見つかりません。最新のgemini-2.0-flashを試行しましたが、APIキーが対応していない可能性があります。")
             else:
-                st.code(str(e))
+                st.code(err_str)
 
 if st.session_state.history:
     st.divider()
