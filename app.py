@@ -34,7 +34,7 @@ def get_market_data():
 df_history, current_rate, news_list = get_market_data()
 
 # UI表示
-st.title("💹 FX AI-Analyst (Global Route)")
+st.title("💹 FX AI-Analyst (Stable Route)")
 st.metric("USD/JPY", f"{current_rate}円")
 
 if not df_history.empty:
@@ -42,32 +42,43 @@ if not df_history.empty:
     fig.update_layout(height=400, template="plotly_dark", margin=dict(l=0,r=0,b=0,t=0), xaxis_rangeslider_visible=False)
     st.plotly_chart(fig, use_container_width=True)
 
-# 3. 予測実行（地域制限を回避する中継ルート）
+# 3. 予測実行（エラーハンドリング強化版）
 if st.button("🚀 AI予測を実行する", use_container_width=True, type="primary"):
-    with st.spinner("AIが中継ルートで分析中..."):
+    with st.spinner("AIがルートを確保して分析中..."):
         try:
             api_key = st.secrets["OPENROUTER_API_KEY"]
             
-            # OpenRouter経由でGeminiを呼び出し（地域制限をバイパス）
+            # OpenRouterのAPIを叩く
             response = requests.post(
                 url="https://openrouter.ai/api/v1/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}"},
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "HTTP-Referer": "https://streamlit.io", # 必須ではないがマナー
+                },
                 json={
-                    "model": "google/gemini-2.0-flash-exp:free", # 無料枠モデル
-                    "messages": [{"role": "user", "content": f"ドル円{current_rate}円。24時間後を[BUY/SELL/HOLD]で判定し日本語で理由を述べて。"}]
+                    "model": "google/gemini-2.0-flash-001", # 最新の安定モデル名を指定
+                    "messages": [{"role": "user", "content": f"現在ドル円は{current_rate}円。24時間後を[BUY/SELL/HOLD]で判定し日本語で理由を述べて。"}]
                 }
             )
             
-            data = response.json()
-            res_text = data['choices'][0]['message']['content']
+            res_json = response.json()
             
-            judgment = "BUY" if "BUY" in res_text.upper() else "SELL" if "SELL" in res_text.upper() else "HOLD"
-            st.session_state.history.append({"time": datetime.datetime.now(JST), "rate": current_rate, "pred": judgment})
-            st.subheader(f"🔮 AI判定: {judgment}")
-            st.markdown(res_text)
+            # ここで原因を特定
+            if 'choices' in res_json:
+                res_text = res_json['choices'][0]['message']['content']
+                judgment = "BUY" if "BUY" in res_text.upper() else "SELL" if "SELL" in res_text.upper() else "HOLD"
+                
+                st.session_state.history.append({"time": datetime.datetime.now(JST), "rate": current_rate, "pred": judgment})
+                st.subheader(f"🔮 AI判定: {judgment}")
+                st.markdown(res_text)
+            else:
+                # 失敗時の理由を詳しく表示
+                error_info = res_json.get('error', {}).get('message', '不明なエラー')
+                st.error(f"AIからの返答がありませんでした。")
+                st.info(f"理由: {error_info}")
                 
         except Exception as e:
-            st.error(f"エラーが発生しました。OpenRouterのキーを確認してください。: {e}")
+            st.error(f"通信エラーが発生しました: {e}")
 
 if st.session_state.history:
     st.divider()
